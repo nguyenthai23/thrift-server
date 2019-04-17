@@ -8,7 +8,7 @@ import vn.example.thrift_server.entity.Blog;
 
 import java.util.List;
 
-public class BlogRepository {
+public class BlogRepository extends Repository<Blog> {
     SessionFactory sessionFactory = new Configuration().configure().buildSessionFactory();
 
     public Blog save(Blog blog) {
@@ -17,7 +17,9 @@ public class BlogRepository {
             session.beginTransaction();
             Long id = (Long) session.save(blog);
             session.getTransaction().commit();
-            return session.load(Blog.class, id);
+            Blog load = session.load(Blog.class, id);
+            this.afterCreate(load);
+            return load;
         } catch (RuntimeException e) {
             session.getTransaction().rollback();
             e.printStackTrace();
@@ -50,10 +52,13 @@ public class BlogRepository {
     public Blog update(Blog blog) {
         Session session = sessionFactory.openSession();
         try {
+            this.beforUpdate(this.findById(blog.getId()));
             session.beginTransaction();
             session.update(blog);
             session.getTransaction().commit();
-            return session.load(Blog.class, blog.getId());
+            Blog load = session.load(Blog.class, blog.getId());
+            this.afterUpdate(load);
+            return load;
         } catch (RuntimeException e) {
             session.getTransaction().rollback();
             e.printStackTrace();
@@ -67,9 +72,10 @@ public class BlogRepository {
         Session session = sessionFactory.openSession();
         try {
             session.beginTransaction();
-            Blog customer = session.load(Blog.class, id);
-            session.delete(customer);
+            Blog blog = session.load(Blog.class, id);
+            session.delete(blog);
             session.getTransaction().commit();
+            this.afterDelete(blog);
         } catch (RuntimeException e) {
             session.getTransaction().rollback();
             e.printStackTrace();
